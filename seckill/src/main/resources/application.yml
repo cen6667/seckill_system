@@ -26,6 +26,22 @@ spring:
       # 心跳机制，测试连接是否可用的查询语句
       connection-test-query: SELECT 1
 
+  redis:
+    host: 192.168.80.134
+    port: 6379
+    database: 0
+    timeout: 10000ms
+    lettuce:
+      pool:
+        #最大连接数 默认8
+        max-active: 8
+        #最大连接阻塞时间
+        max-wait: 1000ms
+        #最大空闲连接，默认8
+        max-idle: 200
+        #最小空闲连接，默认8
+        min-idle: 5
+
 #mybatis-plus
 mybatis-plus:
   mapper-locations: classpath*:/mapper/*Mapper.xml

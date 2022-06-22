@@ -21,6 +21,7 @@ public class GoodsController {
         if(StringUtils.isEmpty(ticket)){
             return "login";
         }
+        // 拿到session里面的user对象
         User user = (User) session.getAttribute(ticket);
         if(null == user){
             return "login";
