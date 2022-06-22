@@ -5,7 +5,9 @@ import com.zyc.seckill.exception.GlobalException;
 import com.zyc.seckill.mapper.UserMapper;
 import com.zyc.seckill.pojo.User;
 import com.zyc.seckill.service.IUserService;
+import com.zyc.seckill.utils.CookieUtil;
 import com.zyc.seckill.utils.MD5Util;
+import com.zyc.seckill.utils.UUIDUtil;
 import com.zyc.seckill.utils.ValidatorUtil;
 import com.zyc.seckill.vo.LoginVo;
 import com.zyc.seckill.vo.RespBean;
@@ -38,7 +40,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     * @date: 2022/6/22 14:46
     */
     @Override
-    public RespBean doLogin(LoginVo loginVo) {
+    public RespBean doLogin(LoginVo loginVo, HttpServletRequest request, HttpServletResponse response) {
         String mobile = loginVo.getMobile();
         String password = loginVo.getPassword();
         //已经使用validator实现，这里注释掉
@@ -58,6 +60,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if(!MD5Util.formPassToDBPass(password, user.getSalt()).equals(user.getPassword())){
             throw new GlobalException(RespBeanEnum.LOGIN_ERROR);
         }
+        // 生成cookie
+        String ticket = UUIDUtil.uuid();
+        request.getSession().setAttribute(ticket, user);
+        CookieUtil.setCookie(request, response, "userTicket", ticket);
         return RespBean.success();
     }
 }
