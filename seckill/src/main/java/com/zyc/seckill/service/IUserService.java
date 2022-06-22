@@ -2,6 +2,11 @@ package com.zyc.seckill.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zyc.seckill.pojo.User;
+import com.zyc.seckill.vo.LoginVo;
+import com.zyc.seckill.vo.RespBean;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * <p>
@@ -13,4 +18,5 @@ import com.zyc.seckill.pojo.User;
  */
 public interface IUserService extends IService<User> {
 
+    RespBean doLogin(LoginVo loginVo);
 }

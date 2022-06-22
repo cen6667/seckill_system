@@ -15,12 +15,12 @@ public class MD5Util {
 
     public static String inputPassToFromPass(String inputPass){
         // salt是随便添加的，做一个混淆
-        String str = salt.charAt(0)+salt.charAt(2)+inputPass+salt.charAt(5)+salt.charAt(4);
+        String str = "" + salt.charAt(0)+salt.charAt(2)+inputPass+salt.charAt(5)+salt.charAt(4);
         return md5(str);
     }
 
     public static String formPassToDBPass(String formPass, String salt){
-        String str = salt.charAt(0)+salt.charAt(2)+formPass+salt.charAt(5)+salt.charAt(4);
+        String str = "" + salt.charAt(0)+salt.charAt(2)+formPass+salt.charAt(5)+salt.charAt(4);
         return md5(str);
     }
 
