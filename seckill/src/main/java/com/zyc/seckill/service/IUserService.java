@@ -19,4 +19,14 @@ import javax.servlet.http.HttpServletResponse;
 public interface IUserService extends IService<User> {
 
     RespBean doLogin(LoginVo loginVo, HttpServletRequest request, HttpServletResponse response);
+
+    /**
+    * @description: 根据cookie获取user
+    * @param:
+    * @return:
+    * @author zyc
+    * @date: 2022/6/22 18:14
+    */
+    User getUserByCookie(String userTicket, HttpServletRequest request, HttpServletResponse response);
+
 }
