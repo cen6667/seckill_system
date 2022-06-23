@@ -25,4 +25,13 @@ public interface GoodsMapper extends BaseMapper<Goods> {
     * @date: 2022/6/23 14:49
     */
     List<GoodsVo> findGoodsVo();
+
+    /**
+    * @description: 获取商品详情
+    * @param:
+    * @return:
+    * @author zyc
+    * @date: 2022/6/23 15:38
+    */
+    GoodsVo findGoodsVoByGoodsId(Long goodsId);
 }

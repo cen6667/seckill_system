@@ -23,4 +23,13 @@ public interface IGoodsService extends IService<Goods> {
     * @date: 2022/6/23 14:47
     */
     List<GoodsVo> findGoodsVo();
+
+    /**
+    * @description: 获取商品详情
+    * @param:
+    * @return:
+    * @author zyc
+    * @date: 2022/6/23 15:35
+    */
+    GoodsVo findGoodsVoByGoodsId(Long goodsId);
 }

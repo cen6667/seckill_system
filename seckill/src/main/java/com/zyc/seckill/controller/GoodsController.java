@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.thymeleaf.util.StringUtils;
 
@@ -22,8 +23,6 @@ import javax.servlet.http.HttpSession;
 @RequestMapping("/goods")
 public class GoodsController {
 
-    @Autowired
-    private IUserService userService;
     @Autowired
     private IGoodsService goodsService;
 
@@ -58,9 +57,10 @@ public class GoodsController {
      * @author zyc
      * @date: 2022/6/22 18:31
      */
-    @RequestMapping("/toDetail")
-    public String toDetail(Model model, User user){
+    @RequestMapping("/toDetail/{goodsId}")
+    public String toDetail(Model model, User user, @PathVariable Long goodsId){
         model.addAttribute("user", user);
-        return "goodsList";
+        model.addAttribute("goods", goodsService.findGoodsVoByGoodsId(goodsId));
+        return "goodsDetail";
     }
 }
