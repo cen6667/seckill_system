@@ -13,7 +13,7 @@ import java.util.List;
  * @description: MVC配置类
  */
 @Configuration
-@EnableWebMvc //boot已经完全接管了mvc，现在这个版本加上好像已经不影响了
+//@EnableWebMvc //表示完全接管mvc，放弃默认配置，现在这个版本加上好像已经不影响了
 public class WebConfig implements WebMvcConfigurer {
     @Autowired
     private UserArgumentResolver userArgumentResolver;
