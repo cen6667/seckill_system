@@ -2,6 +2,9 @@ package com.zyc.seckill.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zyc.seckill.pojo.Goods;
+import com.zyc.seckill.vo.GoodsVo;
+
+import java.util.List;
 
 /**
  * <p>
@@ -12,5 +15,12 @@ import com.zyc.seckill.pojo.Goods;
  * @since 2022-06-23
  */
 public interface IGoodsService extends IService<Goods> {
-
+    /**
+    * @description: 获取商品列表
+    * @param:
+    * @return:
+    * @author zyc
+    * @date: 2022/6/23 14:47
+    */
+    List<GoodsVo> findGoodsVo();
 }
