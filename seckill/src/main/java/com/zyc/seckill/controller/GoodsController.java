@@ -6,17 +6,23 @@ import com.zyc.seckill.service.IUserService;
 import com.zyc.seckill.vo.GoodsVo;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.thymeleaf.context.WebContext;
+import org.thymeleaf.spring5.view.ThymeleafViewResolver;
 import org.thymeleaf.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author zyc
@@ -28,6 +34,10 @@ public class GoodsController {
 
     @Autowired
     private IGoodsService goodsService;
+    @Autowired
+    private RedisTemplate redisTemplate;
+    @Autowired
+    private ThymeleafViewResolver viewResolver;
 
     /**
     * @description: 商品列表页
@@ -36,21 +46,26 @@ public class GoodsController {
     * @author zyc
     * @date: 2022/6/22 18:31
     */
-    @RequestMapping("/toList")
-    public String toList(Model model, User user){
-        //已经使用MVC配置类解决登陆验证
-//        if(StringUtils.isEmpty(ticket)){
-//            return "login";
-//        }
-//        // 拿到session里面的user对象
-////        User user = (User) session.getAttribute(ticket);
-//        User user = userService.getUserByCookie(ticket, request, response);
-        if(null == user){
-            return "login";
+    @RequestMapping(value = "/toList", produces = "text/html;charset=utf-8")
+    @ResponseBody
+    public String toList(Model model, User user, HttpServletRequest request, HttpServletResponse response){
+        // 从Redis里获取页面
+        ValueOperations valueOperations = redisTemplate.opsForValue();
+        String html = (String) valueOperations.get("goodsList");
+        if(!StringUtils.isEmpty(html)){
+            return html;
         }
         model.addAttribute("user", user);
         model.addAttribute("goodsList", goodsService.findGoodsVo());
-        return "goodsList";
+//        return "goodsList";
+        // 如果为空，手动渲染，存入Redis
+        WebContext webContext = new WebContext(request, response, request.getServletContext(), request.getLocale(),model.asMap());
+        String newHtml = viewResolver.getTemplateEngine().process("goodsList", webContext);
+        // 添加失效时间一分钟
+        if(!StringUtils.isEmpty(newHtml)) {
+            valueOperations.set("goodsList", newHtml, 60, TimeUnit.SECONDS);
+        }
+        return newHtml;
     }
 
     /**
@@ -60,8 +75,16 @@ public class GoodsController {
      * @author zyc
      * @date: 2022/6/22 18:31
      */
-    @RequestMapping("/toDetail/{goodsId}")
-    public String toDetail(Model model, User user, @PathVariable Long goodsId){
+    @RequestMapping(value = "/toDetail/{goodsId}", produces = "text/html;charset=utf-8")
+    @ResponseBody
+    public String toDetail(Model model, User user, @PathVariable Long goodsId, HttpServletRequest request, HttpServletResponse response){
+        // 从Redis里获取页面
+        ValueOperations valueOperations = redisTemplate.opsForValue();
+        String html = (String) valueOperations.get("goodsDetail:" + goodsId);
+        if(!StringUtils.isEmpty(html)){
+            return html;
+        }
+
         model.addAttribute("user", user);
         //获取秒杀时间
         GoodsVo goodsVo = goodsService.findGoodsVoByGoodsId(goodsId);
@@ -87,6 +110,13 @@ public class GoodsController {
         model.addAttribute("remainSeconds", remainSeconds);
         model.addAttribute("secKillStatus", secKillStatus);
         model.addAttribute("goods", goodsVo);
-        return "goodsDetail";
+        // 如果为空，手动渲染，存入Redis
+        WebContext webContext = new WebContext(request, response, request.getServletContext(), request.getLocale(),model.asMap());
+        String newHtml = viewResolver.getTemplateEngine().process("goodsDetail", webContext);
+        // 添加失效时间一分钟
+        if(!StringUtils.isEmpty(newHtml)) {
+            valueOperations.set("goodsDetail", newHtml, 60, TimeUnit.SECONDS);
+        }
+        return newHtml;
     }
 }
