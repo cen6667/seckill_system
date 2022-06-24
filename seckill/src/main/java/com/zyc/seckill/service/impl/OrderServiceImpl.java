@@ -7,11 +7,13 @@ import com.zyc.seckill.mapper.OrderMapper;
 import com.zyc.seckill.pojo.SeckillGoods;
 import com.zyc.seckill.pojo.SeckillOrder;
 import com.zyc.seckill.pojo.User;
+import com.zyc.seckill.service.IGoodsService;
 import com.zyc.seckill.service.IOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zyc.seckill.service.ISeckillGoodsService;
 import com.zyc.seckill.service.ISeckillOrderService;
 import com.zyc.seckill.vo.GoodsVo;
+import com.zyc.seckill.vo.OrderDetailVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +35,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     private ISeckillGoodsService seckillGoodsService;
     @Autowired
     private IOrderService orderService;
+    @Autowired
+    private IGoodsService goodsService;
 
     /**
     * @description: 秒杀减库存
@@ -69,5 +73,22 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         seckillOrder.setUserId(user.getId());
         seckillOrderService.save(seckillOrder);
         return order;
+    }
+    /**
+    * @description: 订单详情
+    * @param:
+    * @return:
+    * @author zyc
+    * @date: 2022/6/25 0:00
+    */
+    @Override
+    public OrderDetailVo getDetail(Long orderId) {
+        Order order = baseMapper.selectById(orderId);
+        Long goodsId = order.getGoodsId();
+        GoodsVo goodsVo = goodsService.findGoodsVoByGoodsId(goodsId);
+        OrderDetailVo res = new OrderDetailVo();
+        res.setOrder(order);
+        res.setGoodsVo(goodsVo);
+        return res;
     }
 }

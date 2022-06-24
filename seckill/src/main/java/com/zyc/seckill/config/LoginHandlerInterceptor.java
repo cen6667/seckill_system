@@ -26,7 +26,6 @@ public class LoginHandlerInterceptor implements HandlerInterceptor {
         // 登录成功之后，应该有ticket信息
         // 获取cookie里面的ticket
         String ticket = CookieUtil.getCookieValue(request, "userTicket");
-
         User user = (User) redisTemplate.opsForValue().get("user:"+ticket);
         //说明没有登录
         if (user == null){
