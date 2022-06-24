@@ -41,6 +41,8 @@ public class GoodsController {
 
     /**
     * @description: 商品列表页
+    * window 优化前：
+    *        缓存优化：1500
     * @param:
     * @return:
     * @author zyc
