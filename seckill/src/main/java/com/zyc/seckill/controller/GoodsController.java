@@ -3,7 +3,9 @@ package com.zyc.seckill.controller;
 import com.zyc.seckill.pojo.User;
 import com.zyc.seckill.service.IGoodsService;
 import com.zyc.seckill.service.IUserService;
+import com.zyc.seckill.vo.DetailVo;
 import com.zyc.seckill.vo.GoodsVo;
+import com.zyc.seckill.vo.RespBean;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -77,9 +79,9 @@ public class GoodsController {
      * @author zyc
      * @date: 2022/6/22 18:31
      */
-    @RequestMapping(value = "/toDetail/{goodsId}", produces = "text/html;charset=utf-8")
+    @RequestMapping(value = "/toDetail2/{goodsId}", produces = "text/html;charset=utf-8")
     @ResponseBody
-    public String toDetail(Model model, User user, @PathVariable Long goodsId, HttpServletRequest request, HttpServletResponse response){
+    public String toDetail2(Model model, User user, @PathVariable Long goodsId, HttpServletRequest request, HttpServletResponse response){
         // 从Redis里获取页面
         ValueOperations valueOperations = redisTemplate.opsForValue();
         String html = (String) valueOperations.get("goodsDetail:" + goodsId);
@@ -120,5 +122,45 @@ public class GoodsController {
             valueOperations.set("goodsDetail", newHtml, 60, TimeUnit.SECONDS);
         }
         return newHtml;
+    }
+
+    /**
+    * @description: 商品详情页——静态优化
+    * @param:
+    * @return:
+    * @author zyc
+    * @date: 2022/6/24 22:09
+    */
+    @RequestMapping("/detail/{goodsId}")
+    @ResponseBody
+    public RespBean toDetail(Model model, User user, @PathVariable Long goodsId){
+        //获取秒杀时间
+        GoodsVo goodsVo = goodsService.findGoodsVoByGoodsId(goodsId);
+        Date startDate = goodsVo.getStartDate();
+        Date endDate = goodsVo.getEndDate();
+        Date nowDate = new Date();
+        // 秒杀状态
+        int secKillStatus = 0;
+        // 秒杀倒计时
+        int remainSeconds = 0;
+        if(nowDate.before(startDate)){
+            // 秒杀还未开始
+            remainSeconds = (int) ((startDate.getTime() - nowDate.getTime())/1000);
+        } else if(nowDate.after(endDate)){
+            // 秒杀结束
+            secKillStatus = 2;
+            remainSeconds = -1;
+        }else {
+            // 秒杀进行中
+            secKillStatus = 1;
+            remainSeconds = 0;
+        }
+        // 返回对象
+        DetailVo detailVo = new DetailVo();
+        detailVo.setUser(user);
+        detailVo.setGoodsVo(goodsVo);
+        detailVo.setSecKillStatus(secKillStatus);
+        detailVo.setRemainSeconds(remainSeconds);
+        return RespBean.success(detailVo);
     }
 }
