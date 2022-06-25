@@ -11,6 +11,7 @@ import com.zyc.seckill.vo.GoodsVo;
 import com.zyc.seckill.vo.RespBean;
 import com.zyc.seckill.vo.RespBeanEnum;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,6 +30,8 @@ public class SecKillController {
     private ISeckillOrderService seckillOrderService;
     @Autowired
     private IOrderService orderService;
+    @Autowired
+    private RedisTemplate redisTemplate;
     /**
     * @description: 秒杀
     * @param: 
@@ -81,10 +84,12 @@ public class SecKillController {
             return RespBean.error(RespBeanEnum.EMPTY_STOCK);
         }
         //判断当前用户是否已经秒杀过
-        QueryWrapper<SeckillOrder> wrapper = new QueryWrapper<>();
-        wrapper.eq("user_id", user.getId());
-        wrapper.eq("goods_id", goodsId);
-        SeckillOrder seckillOrder = seckillOrderService.getOne(wrapper);
+//        QueryWrapper<SeckillOrder> wrapper = new QueryWrapper<>();
+//        wrapper.eq("user_id", user.getId());
+//        wrapper.eq("goods_id", goodsId);
+//        SeckillOrder seckillOrder = seckillOrderService.getOne(wrapper);
+        SeckillOrder seckillOrder =
+                (SeckillOrder) redisTemplate.opsForValue().get("order:" + user.getId() + ":" + goodsVo.getId());
         if(seckillOrder != null) {
             model.addAttribute("errmsg", RespBeanEnum.REPEATE_ERROR.getMessage());
             return RespBean.error(RespBeanEnum.REPEATE_ERROR);

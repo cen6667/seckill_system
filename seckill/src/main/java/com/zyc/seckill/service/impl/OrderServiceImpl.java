@@ -15,7 +15,9 @@ import com.zyc.seckill.service.ISeckillOrderService;
 import com.zyc.seckill.vo.GoodsVo;
 import com.zyc.seckill.vo.OrderDetailVo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 
@@ -37,6 +39,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     private IOrderService orderService;
     @Autowired
     private IGoodsService goodsService;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     /**
     * @description: 秒杀减库存
@@ -45,14 +49,22 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     * @author zyc
     * @date: 2022/6/23 18:50
     */
+    @Transactional
     @Override
     public Order seckill(User user, GoodsVo goodsVo) {
         //减秒杀商品的库存
         QueryWrapper<SeckillGoods> wrapper1 = new QueryWrapper<>();
         wrapper1.eq("goods_id", goodsVo.getId());
         SeckillGoods seckillGoods = seckillGoodsService.getOne(wrapper1);
+        // mybatis
         seckillGoods.setStockCount(seckillGoods.getStockCount()-1);
-        seckillGoodsService.updateById(seckillGoods);
+        boolean seckillGoodsResult = seckillGoodsService.update(new UpdateWrapper<SeckillGoods>()
+                .setSql("stock_count="+"stock_count-1")
+                .eq("id", seckillGoods.getGoodsId())
+                .gt("stock_count", 0));//大于零判断
+        if(!seckillGoodsResult){
+            return null;
+        }
         //生成订单
         Order order = new Order();
         order.setCreateDate(new Date());
@@ -72,6 +84,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         seckillOrder.setGoodsId(goodsVo.getId());
         seckillOrder.setUserId(user.getId());
         seckillOrderService.save(seckillOrder);
+
+        redisTemplate.opsForValue().set("order:" + user.getId() + ":" + goodsVo.getId(), seckillOrder);
         return order;
     }
     /**
