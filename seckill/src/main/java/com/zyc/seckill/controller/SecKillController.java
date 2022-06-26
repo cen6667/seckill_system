@@ -17,12 +17,14 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.thymeleaf.util.StringUtils;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +46,8 @@ public class SecKillController implements InitializingBean {
     private RedisTemplate redisTemplate;
     @Autowired
     private MQSender mqSender;
+    @Autowired
+    private RedisScript<Long> script;
     // 内存标记
     private Map<Long, Boolean> stockEmptyMap = new HashMap<>();
     /**
@@ -125,11 +129,18 @@ public class SecKillController implements InitializingBean {
             return RespBean.error(RespBeanEnum.EMPTY_STOCK);
         }
         // 预减库存
-        Long stock = valueOperations.decrement("seckillGoods:" + goodsId);
-        if(stock<0){
-            // 无库存
+//        Long stock = valueOperations.decrement("seckillGoods:" + goodsId);
+//        if(stock<0){
+//            // 无库存
+//            stockEmptyMap.put(goodsId, true);
+//            valueOperations.increment("seckillGoods:" + goodsId);
+//            return RespBean.error(RespBeanEnum.EMPTY_STOCK);
+//        }
+        //使用lua脚本
+        Long stock = (Long) redisTemplate.execute(script, Collections.singletonList("seckillGoods:" + goodsId), Collections.EMPTY_LIST);
+        if(stock == 0) {
             stockEmptyMap.put(goodsId, true);
-            valueOperations.increment("seckillGoods:" + goodsId);
+            //valueOperations.increment("seckillGoods:" + goodsId);
             return RespBean.error(RespBeanEnum.EMPTY_STOCK);
         }
         // 下订单，发送给RabbitMQ
