@@ -35,11 +35,11 @@ public class UserController {
         return RespBean.success(user);
     }
 
-    //测试发送消息
-    @RequestMapping("/mq")
-    @ResponseBody
-    public void mq() {
-        mqSender.send("hello");
-    }
+//    //测试发送消息
+//    @RequestMapping("/mq")
+//    @ResponseBody
+//    public void mq() {
+//        mqSender.send("hello");
+//    }
 
 }

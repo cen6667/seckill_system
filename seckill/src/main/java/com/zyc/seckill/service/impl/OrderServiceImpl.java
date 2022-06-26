@@ -16,6 +16,7 @@ import com.zyc.seckill.vo.GoodsVo;
 import com.zyc.seckill.vo.OrderDetailVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,7 +63,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 .setSql("stock_count="+"stock_count-1")
                 .eq("id", seckillGoods.getGoodsId())
                 .gt("stock_count", 0));//大于零判断
-        if(!seckillGoodsResult){
+
+        ValueOperations valueOperations = redisTemplate.opsForValue();
+        if (seckillGoods.getStockCount() < 1) {
+            //判断是否还有库存
+            valueOperations.set("isStockEmpty:" + goodsVo.getId(), "0");
             return null;
         }
         //生成订单

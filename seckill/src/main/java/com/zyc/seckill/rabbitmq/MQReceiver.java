@@ -81,6 +81,8 @@ public class MQReceiver {
     @RabbitListener(queues = "seckillQueue")
     public void receive(String message) {
         log.info("接收到订单消息:", message);
+        // log.info输出不显示，但是这里可以输出
+        System.out.println(message);
 
         SeckillMessage seckillMessage = JSON.parseObject(message, SeckillMessage.class);
         Long goodsId = seckillMessage.getGoodsId();

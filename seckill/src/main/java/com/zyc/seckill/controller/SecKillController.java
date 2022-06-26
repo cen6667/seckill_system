@@ -21,6 +21,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.thymeleaf.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.List;
@@ -44,7 +45,7 @@ public class SecKillController implements InitializingBean {
     @Autowired
     private MQSender mqSender;
     // 内存标记
-    private Map<Long, Boolean> emptyMap = new HashMap<>();
+    private Map<Long, Boolean> stockEmptyMap = new HashMap<>();
     /**
     * @description: 秒杀
     * @param: 
@@ -120,18 +121,18 @@ public class SecKillController implements InitializingBean {
             return RespBean.error(RespBeanEnum.REPEATE_ERROR);
         }
         // 通过内存标记减少Redis操作
-        if(emptyMap.get(goodsId)){
+        if(stockEmptyMap.get(goodsId)){
             return RespBean.error(RespBeanEnum.EMPTY_STOCK);
         }
         // 预减库存
         Long stock = valueOperations.decrement("seckillGoods:" + goodsId);
         if(stock<0){
             // 无库存
-            emptyMap.put(goodsId, true);
+            stockEmptyMap.put(goodsId, true);
             valueOperations.increment("seckillGoods:" + goodsId);
             return RespBean.error(RespBeanEnum.EMPTY_STOCK);
         }
-        // 下订单
+        // 下订单，发送给RabbitMQ
         SeckillMessage seckillMessage = new SeckillMessage(user, goodsId);
         mqSender.sendSeckillMessage(JSON.toJSONString(seckillMessage));
         return RespBean.success(0);
@@ -154,7 +155,41 @@ public class SecKillController implements InitializingBean {
         for(GoodsVo goodsVo : list) {
             valueOperations.set("seckillGoods:" + goodsVo.getId(), goodsVo.getStockCount());
             // 有库存
-            emptyMap.put(goodsVo.getId(), false);
+            stockEmptyMap.put(goodsVo.getId(), false);
         }
     }
+
+    /**
+    * @description: 前端轮询秒杀结果
+    * @param:
+    * @return:
+    * @author zyc
+    * @date: 2022/6/26 18:22
+    */
+    @RequestMapping("/result")
+    @ResponseBody
+    public RespBean getResult(User user, Long goodsId) {
+        if(user == null) {
+            return RespBean.error(RespBeanEnum.SESSION_ERROR);
+        }
+        // 获取秒杀结果
+//        Long orderId = seckillOrderService.getResult(user, goodsId);
+//        System.out.println(orderId);
+//        return RespBean.success(orderId);
+        String key = "order" + user.getId() + ":" + goodsId;
+        ValueOperations valueOperations = redisTemplate.opsForValue();
+        Long orderId = -1L;
+        boolean o = valueOperations.get(key) != null;
+        System.out.println("是否"+o);
+        if(valueOperations.get(key) != null) {
+            SeckillOrder seckillOrder = (SeckillOrder) valueOperations.get(key);
+            orderId = seckillOrder.getOrderId();
+        } else if((int)valueOperations.get("seckillGoods:" + goodsId) <= 0) {
+            orderId = -1L;
+        } else {
+            orderId = 0L;
+        }
+        return RespBean.success(orderId);
+    }
+
 }
