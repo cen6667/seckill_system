@@ -1,21 +1,30 @@
 package com.zyc.seckill.controller;
 
+import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.zyc.seckill.pojo.Order;
+import com.zyc.seckill.pojo.SeckillMessage;
 import com.zyc.seckill.pojo.SeckillOrder;
 import com.zyc.seckill.pojo.User;
+import com.zyc.seckill.rabbitmq.MQSender;
 import com.zyc.seckill.service.IGoodsService;
 import com.zyc.seckill.service.IOrderService;
 import com.zyc.seckill.service.ISeckillOrderService;
 import com.zyc.seckill.vo.GoodsVo;
 import com.zyc.seckill.vo.RespBean;
 import com.zyc.seckill.vo.RespBeanEnum;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author zyc
@@ -23,7 +32,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
  */
 @Controller
 @RequestMapping("/seckill")
-public class SecKillController {
+public class SecKillController implements InitializingBean {
     @Autowired
     private IGoodsService goodsService;
     @Autowired
@@ -32,6 +41,10 @@ public class SecKillController {
     private IOrderService orderService;
     @Autowired
     private RedisTemplate redisTemplate;
+    @Autowired
+    private MQSender mqSender;
+    // 内存标记
+    private Map<Long, Boolean> emptyMap = new HashMap<>();
     /**
     * @description: 秒杀
     * @param: 
@@ -74,8 +87,7 @@ public class SecKillController {
         if(user == null) {
             return RespBean.error(RespBeanEnum.SESSION_ERROR);
         }
-        // 我已经做了登录拦截
-        model.addAttribute("user", user);
+        /*model.addAttribute("user", user);
         GoodsVo goodsVo = goodsService.findGoodsVoByGoodsId(goodsId);
         model.addAttribute("goods", goodsVo);
         //判断库存
@@ -97,8 +109,52 @@ public class SecKillController {
         //下订单
         Order order = orderService.seckill(user, goodsVo);
         model.addAttribute("order", order);
-        return RespBean.success(order);
+        return RespBean.success(order);*/
 
+        ValueOperations valueOperations = redisTemplate.opsForValue();
+        // 判断是否重复抢购
+        SeckillOrder seckillOrder =
+                (SeckillOrder) redisTemplate.opsForValue().get("order:" + user.getId() + ":" + goodsId);
+        if(seckillOrder != null) {
+            model.addAttribute("errmsg", RespBeanEnum.REPEATE_ERROR.getMessage());
+            return RespBean.error(RespBeanEnum.REPEATE_ERROR);
+        }
+        // 通过内存标记减少Redis操作
+        if(emptyMap.get(goodsId)){
+            return RespBean.error(RespBeanEnum.EMPTY_STOCK);
+        }
+        // 预减库存
+        Long stock = valueOperations.decrement("seckillGoods:" + goodsId);
+        if(stock<0){
+            // 无库存
+            emptyMap.put(goodsId, true);
+            valueOperations.increment("seckillGoods:" + goodsId);
+            return RespBean.error(RespBeanEnum.EMPTY_STOCK);
+        }
+        // 下订单
+        SeckillMessage seckillMessage = new SeckillMessage(user, goodsId);
+        mqSender.sendSeckillMessage(JSON.toJSONString(seckillMessage));
+        return RespBean.success(0);
     }
-    
+
+    /**
+    * @description: 初始化执行方法
+    * @param:
+    * @return:
+    * @author zyc
+    * @date: 2022/6/26 17:50
+    */
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        List<GoodsVo> list = goodsService.findGoodsVo();
+        if(list.size() == 0) {
+            return ;
+        }
+        ValueOperations valueOperations = redisTemplate.opsForValue();
+        for(GoodsVo goodsVo : list) {
+            valueOperations.set("seckillGoods:" + goodsVo.getId(), goodsVo.getStockCount());
+            // 有库存
+            emptyMap.put(goodsVo.getId(), false);
+        }
+    }
 }

@@ -52,7 +52,7 @@ public class UserUtil {
 //        connection.close();
 //        System.out.println("放入数据库");
         // 生成userTicket
-        String urlString = "http://192.168.80.134:8080/login/doLogin";
+        String urlString = "http://localhost:8080/login/doLogin";
         File file = new File("C:\\Users\\cen66\\Desktop\\config.txt");
         if (file.exists()) {
             file.delete();

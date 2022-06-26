@@ -27,18 +27,6 @@ public class WebConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/**").addResourceLocations("classpath:/static/");
     }
-    
-    /**
-    * @description: 实例化拦截器，防止RedisTemplate还没加载
-    * @param:
-    * @return:
-    * @author zyc
-    * @date: 2022/6/24 18:06
-    */
-    @Bean
-    public LoginHandlerInterceptor loginInterceptor() {
-        return new LoginHandlerInterceptor();
-    }
 
     /**
     * @description: 页面拦截器
@@ -49,8 +37,14 @@ public class WebConfig implements WebMvcConfigurer {
     */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(loginInterceptor()).addPathPatterns("")
-                .excludePathPatterns("/","/login/toLogin");
+        registry.addInterceptor(new LoginHandlerInterceptor()).addPathPatterns("")
+                .excludePathPatterns("/","/login/toLogin")
+                .excludePathPatterns(    //添加不拦截路径
+                        "/**/*.html",                //html静态资源
+                        "/**/*.js",                  //js静态资源
+                        "/**/*.css"                  //css静态资源
+                );
+        ;
     }
 
     /**
