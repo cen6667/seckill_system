@@ -229,6 +229,21 @@ public class SecKillController implements InitializingBean {
         if(user == null) {
             return RespBean.error(RespBeanEnum.SESSION_ERROR);
         }
+
+        ValueOperations valueOperations = redisTemplate.opsForValue();
+//        限制访问次数，5秒内访问5次
+        String uri = request.getRequestURI();
+        // 方便测试用
+        captcha = "0";
+        Integer count = (Integer) valueOperations.get(uri + ":" + user.getId());
+        if (count == null) {
+            valueOperations.set(uri + ":" + user.getId(), 1, 5, TimeUnit.SECONDS);
+        } else if (count < 5) {
+            valueOperations.increment(uri + ":" + user.getId());
+        } else {
+            return RespBean.error(RespBeanEnum.ACCESS_LIMIT_REACHED);
+        }
+
         //判断验证码是否正确
         Boolean check = orderService.checkCptcha(user, goodsId, captcha);
         if(!check) {
