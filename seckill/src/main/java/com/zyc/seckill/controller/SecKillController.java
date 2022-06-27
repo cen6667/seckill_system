@@ -2,6 +2,8 @@ package com.zyc.seckill.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.wf.captcha.ArithmeticCaptcha;
+import com.zyc.seckill.exception.GlobalException;
 import com.zyc.seckill.pojo.Order;
 import com.zyc.seckill.pojo.SeckillMessage;
 import com.zyc.seckill.pojo.SeckillOrder;
@@ -27,10 +29,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.thymeleaf.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author zyc
@@ -224,10 +229,43 @@ public class SecKillController implements InitializingBean {
         if(user == null) {
             return RespBean.error(RespBeanEnum.SESSION_ERROR);
         }
-
+        //判断验证码是否正确
+        Boolean check = orderService.checkCptcha(user, goodsId, captcha);
+        if(!check) {
+            return RespBean.error(RespBeanEnum.ERROR_CAPTCHA);
+        }
         //生成秒杀的接口
         String str = orderService.createPath(user, goodsId);
         return RespBean.success(str);
+    }
+
+    /**
+    * @description: 生成验证码
+    * @param:
+    * @return:
+    * @author zyc
+    * @date: 2022/6/27 17:43
+    */
+    @RequestMapping("/captcha")
+    public void vertifyCode(User user, Long goodsId, HttpServletResponse response) {
+        if(user == null || goodsId < 0) {
+            throw new GlobalException(RespBeanEnum.REPEATE_ERROR);
+        }
+
+        //设置请求头为输出图片数据
+        response.setContentType("image/jpg");
+        response.setHeader("Pargam","No-cache");
+        response.setHeader("Cache-Control", "no-cache");
+        response.setDateHeader("Expires", 0);
+        //生成验证码，将结果放入redis中
+        ArithmeticCaptcha captcha = new ArithmeticCaptcha(130, 32, 3);
+        redisTemplate.opsForValue().set("captcha:" + user.getId() + ":" + goodsId, captcha.text(), 300, TimeUnit.SECONDS);
+        try {
+            captcha.out(response.getOutputStream());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
 }

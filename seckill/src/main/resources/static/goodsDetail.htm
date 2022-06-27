@@ -147,9 +147,14 @@
                 clearTimeout(timeout);
             }
             $("#seckillTip").html("秒杀进行中")
+            $("#captchaImg").attr("src","/seckill/captcha?goodsId="+$("#goodsId").val() + "&time=" + new Date());
+            $("#captchaImg").show();
+            $("#captcha").show();
         } else {
             $("#buyButton").attr("disabled", true);
             $("#seckillTip").html("秒杀已经结束");
+            $("#captchaImg").hide();
+            $("#captcha").hide();
         }
     };
 
@@ -163,7 +168,7 @@
             },
             success: function (data) {
                 if (data.code == 200) {
-                    var result = data.object;
+                    var result = data.obj;
                     if (result < 0) {
                         layer.msg("对不起，秒杀失败");
                     } else if (result == 0) {
@@ -212,6 +217,10 @@
                 layer.msg("客户端请求错误");
             }
         })
+    }
+
+    function refreashCaptcha() {
+        $("#captchaImg").attr("src","/seckill/captcha?goodsId="+$("#goodsId").val() + "&time=" + new Date());
     }
 
 </script>

@@ -21,6 +21,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
@@ -140,6 +141,25 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         String key = "seckillPath:" + user.getId() + ":" + goodsId;
         String rightPath = (String) redisTemplate.opsForValue().get(key);
         if(rightPath == null || !rightPath.equals(path)) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+    * @description: 校验验证码
+    * @param:
+    * @return:
+    * @author zyc
+    * @date: 2022/6/27 17:45
+    */
+    @Override
+    public Boolean checkCptcha(User user, Long goodsId, String captcha) {
+        if(StringUtils.isEmpty(captcha) || user == null || goodsId < 0) {
+            return false;
+        }
+        String rightCaptcha = (String) redisTemplate.opsForValue().get("captcha:" + user.getId() + ":" + goodsId);
+        if(!captcha.equals(rightCaptcha)) {
             return false;
         }
         return true;

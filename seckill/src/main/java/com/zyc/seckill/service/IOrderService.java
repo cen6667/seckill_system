@@ -49,4 +49,13 @@ public interface IOrderService extends IService<Order> {
     * @date: 2022/6/27 17:26
     */
     Boolean checkPath(User user, String path, Long goodsId);
+
+    /**
+    * @description: 校验验证码
+    * @param:
+    * @return:
+    * @author zyc
+    * @date: 2022/6/27 17:44
+    */
+    Boolean checkCptcha(User user, Long goodsId, String captcha);
 }
