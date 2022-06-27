@@ -17,7 +17,10 @@ import java.util.List;
 public class WebConfig implements WebMvcConfigurer {
     @Autowired
     private UserArgumentResolver userArgumentResolver;
+    @Autowired
+    private AccessLimitInterceptor accessLimitInterceptor;
 
+//     使用拦截器也可以加载
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
         resolvers.add(userArgumentResolver);
@@ -44,7 +47,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "/**/*.js",                  //js静态资源
                         "/**/*.css"                  //css静态资源
                 );
-        ;
+        registry.addInterceptor(accessLimitInterceptor);
     }
 
     /**
