@@ -20,10 +20,13 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.thymeleaf.util.StringUtils;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -50,6 +53,7 @@ public class SecKillController implements InitializingBean {
     private RedisScript<Long> script;
     // 内存标记
     private Map<Long, Boolean> stockEmptyMap = new HashMap<>();
+
     /**
     * @description: 秒杀
     * @param: 
@@ -86,11 +90,16 @@ public class SecKillController implements InitializingBean {
 
     }
 
-    @RequestMapping("/doSeckill")
+    @RequestMapping("/{path}/doSeckill")
     @ResponseBody
-    public RespBean doSeckill(Model model, User user, Long goodsId) {
+    public RespBean doSeckill(@PathVariable String path, User user, Long goodsId) {
         if(user == null) {
             return RespBean.error(RespBeanEnum.SESSION_ERROR);
+        }
+        ValueOperations valueOperations = redisTemplate.opsForValue();
+        Boolean check = orderService.checkPath(user, path, goodsId);
+        if(!check) {
+            return RespBean.error(RespBeanEnum.REPEATE_ERROR);
         }
         /*model.addAttribute("user", user);
         GoodsVo goodsVo = goodsService.findGoodsVoByGoodsId(goodsId);
@@ -116,12 +125,11 @@ public class SecKillController implements InitializingBean {
         model.addAttribute("order", order);
         return RespBean.success(order);*/
 
-        ValueOperations valueOperations = redisTemplate.opsForValue();
+
         // 判断是否重复抢购
         SeckillOrder seckillOrder =
                 (SeckillOrder) redisTemplate.opsForValue().get("order:" + user.getId() + ":" + goodsId);
         if(seckillOrder != null) {
-            model.addAttribute("errmsg", RespBeanEnum.REPEATE_ERROR.getMessage());
             return RespBean.error(RespBeanEnum.REPEATE_ERROR);
         }
         // 通过内存标记减少Redis操作
@@ -201,6 +209,25 @@ public class SecKillController implements InitializingBean {
             orderId = 0L;
         }
         return RespBean.success(orderId);
+    }
+
+    /**
+    * @description: 获取秒杀接口
+    * @param:
+    * @return:
+    * @author zyc
+    * @date: 2022/6/27 17:18
+    */
+    @RequestMapping(value = "/path", method = RequestMethod.GET)
+    @ResponseBody
+    public RespBean getPath(User user, Long goodsId, String captcha, HttpServletRequest request) {
+        if(user == null) {
+            return RespBean.error(RespBeanEnum.SESSION_ERROR);
+        }
+
+        //生成秒杀的接口
+        String str = orderService.createPath(user, goodsId);
+        return RespBean.success(str);
     }
 
 }

@@ -12,6 +12,8 @@ import com.zyc.seckill.service.IOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zyc.seckill.service.ISeckillGoodsService;
 import com.zyc.seckill.service.ISeckillOrderService;
+import com.zyc.seckill.utils.MD5Util;
+import com.zyc.seckill.utils.UUIDUtil;
 import com.zyc.seckill.vo.GoodsVo;
 import com.zyc.seckill.vo.OrderDetailVo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -109,5 +112,36 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         res.setOrder(order);
         res.setGoodsVo(goodsVo);
         return res;
+    }
+
+    /**
+    * @description: 获取秒杀地址
+    * @param:
+    * @return:
+    * @author zyc
+    * @date: 2022/6/27 17:21
+    */
+    @Override
+    public String createPath(User user, Long goodsId) {
+        String str = MD5Util.md5(UUIDUtil.uuid() + "123456");
+        redisTemplate.opsForValue().set("seckillPath:" + user.getId() + ":" + goodsId, str, 60, TimeUnit.SECONDS);
+        return str;
+    }
+
+    /**
+     * @description: 校验秒杀接口地址
+     * @param:
+     * @return:
+     * @author zyc
+     * @date: 2022/6/27 17:26
+     */
+    @Override
+    public Boolean checkPath(User user, String path, Long goodsId) {
+        String key = "seckillPath:" + user.getId() + ":" + goodsId;
+        String rightPath = (String) redisTemplate.opsForValue().get(key);
+        if(rightPath == null || !rightPath.equals(path)) {
+            return false;
+        }
+        return true;
     }
 }

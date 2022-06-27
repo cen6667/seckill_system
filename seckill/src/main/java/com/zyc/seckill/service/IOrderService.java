@@ -31,4 +31,22 @@ public interface IOrderService extends IService<Order> {
     * @date: 2022/6/25 0:00
     */
     OrderDetailVo getDetail(Long orderId);
+
+    /**
+    * @description: 获取秒杀地址
+    * @param:
+    * @return:
+    * @author zyc
+    * @date: 2022/6/27 17:21
+    */
+    String createPath(User user, Long goodsId);
+
+    /**
+    * @description: 校验秒杀接口地址
+    * @param:
+    * @return:
+    * @author zyc
+    * @date: 2022/6/27 17:26
+    */
+    Boolean checkPath(User user, String path, Long goodsId);
 }
